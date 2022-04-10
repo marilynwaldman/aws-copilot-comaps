@@ -19,11 +19,8 @@ from cleandata2 import clean_data, get_map_attributes
 filename = './co_counties_voters.geojson'
 file=open(filename)
 counties_gdf = gpd.read_file(file)
-print(counties_gdf.head(1))
-print(counties_gdf.columns)
 
 #create df that contains counties and lat/long for them
-
 df_counties = counties_gdf[['LABEL', 'CENT_LAT', 'CENT_LONG']]
 
 # create empty df to initialize map
@@ -36,10 +33,8 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets,prevent_init
 ### Plot a county map of Colorado (zoomed in to Denver metro)
 def plot_map(df, counties_gdf):
     
-    fig = go.Figure(go.Scattermapbox(
+    fig = go.Figure(go.Scattermapbox())
         
-    ))
-
     if  not df.empty:
         lats, lons, labels, sizes, colors = get_map_attributes(df)
 
@@ -71,10 +66,8 @@ def plot_map(df, counties_gdf):
         margin={"l":0,"r":0,"t":0,"b":0},
     ) 
 
-    print("after add_scatter")
     fig.update_traces(line=dict(width=3, color='black'))
     
-
     return fig
 
 ### The code that parses the file (from https://dash.plotly.com/dash-core-components/upload)
@@ -96,11 +89,6 @@ def parse_contents(contents, filename, date):
             'There was an error processing this file.'
         ])
 
-    print ('parsing contents')
-
-### update fig here
-    print ('df',type(df))
-    print (df.head(10))
 
 ### clean data
     df_clean = clean_data(df, df_counties)
@@ -117,17 +105,12 @@ def parse_contents(contents, filename, date):
               State('upload-data', 'filename'),
               State('upload-data', 'last_modified'),prevent_initial_call=True)
 def update_output(list_of_contents, list_of_names, list_of_dates):
-    print("in update_output thing")
     if list_of_contents is not None:
         df_cleaned = [parse_contents(c, n, d) for c, n, d in
-            zip(list_of_contents, list_of_names, list_of_dates)]
-        print(df_cleaned[0].head(2))    
+            zip(list_of_contents, list_of_names, list_of_dates)]    
         fig = plot_map(df_cleaned[0],counties_gdf)  
         return fig  
-        children = [
-            parse_contents(c, n, d) for c, n, d in
-            zip(list_of_contents, list_of_names, list_of_dates)]
-        return children
+        
 
 
 #figure = plot_map(df, counties_gdf)

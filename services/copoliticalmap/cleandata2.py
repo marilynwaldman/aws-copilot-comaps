@@ -35,18 +35,16 @@ def get_totals(df):
 
     return df  
 
+#join the df and coordinates on county name
 def join_geocoordinates(df, geodf):
-
-    #df_join = df.set_index('County').join(geodf.set_index('LABEL'))
     df_join = pd.merge(df, geodf, left_on='County', right_on='LABEL') 
     return df_join
 
 
-
+# find max party per county
 def find_max(df):     
     df['maxPartyValue'] = df[['Republicans', 'Democrats', 'Unaffiliated']].max(axis = 1)
     df['maxParty'] = df[['Republicans', 'Democrats', 'Unaffiliated']].idxmax(axis = 1)  
-    df_temp = df[['Republicans', 'Democrats', 'Unaffiliated', 'Republicans', 'Democrats', 'Unaffiliated','maxPartyValue' ]]
     
     partial = .75
     df.loc[df.maxParty == 'Republicans', "Max"] = 4
@@ -54,13 +52,11 @@ def find_max(df):
     df.loc[df.maxParty == 'Unaffiliated', "Max"] = 2
     df.loc[(df.maxParty == 'Unaffiliated') & (df.Democrats/df.Unaffiliated > partial) , "Max"] = 1
     df.loc[(df.maxParty == 'Unaffiliated') & (df.Republicans/df.Unaffiliated > partial), "Max"] = 3
-    df_temp = df[['Republicans', 'Democrats', 'Unaffiliated', 'Republicans', 'Democrats', 'Unaffiliated','maxParty', 'Max' ]]
-    print(df_temp.head(20))
+    
     return df
 
 def clean_data(df, df_geo):
-    print('cleaning data')
-    
+
     # fill missing data, strings to floats and average thing
     df_transformed = transform_df(df)
     # get total Dems, Reps, Unaffiliated
@@ -82,14 +78,12 @@ def get_map_attributes(counties_gdf):
         sizes[i] = sizes[i].astype(int).item()
         sizes[i] = min(sizes[i],65) 
         sizes[i] = max(5,sizes[i])
-        #print('s=',sizes[i])
-        #print(type(sizes[i]))
+        
 
     colors = []
     color_key = ["blue","lightblue","grey","pink","red"]
     for i in range(0,len(counties_gdf['Max'])):
         m = int(counties_gdf['Max'][i])
-        #print('i=',i,' m=',m,color_key[m])
         colors.append(color_key[m])
 
     labels = []
@@ -98,16 +92,11 @@ def get_map_attributes(counties_gdf):
     dems = counties_gdf['Democrats'].astype(int).astype(str)
     for i in range(0,len(counties_gdf['County'])):
         labels.append(counties_gdf['County'][i] + '\nRep: '+reps[i] + '\nUAF: '+uafs[i]+'\nDems: '+dems[i])
-
-    print('lat',type(lats),'lon',type(lons))  
+ 
     lats = lats.tolist()
-    print(lats[0])
     lons = lons.tolist()
-    print(lons[0])
     sizes = sizes.tolist()
-    print(sizes[0])
-    print(labels[0])
-    print(colors[0])
+    
     return lats, lons, labels, sizes, colors 
 
 
