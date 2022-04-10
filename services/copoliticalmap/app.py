@@ -1,7 +1,4 @@
 import dash
-#import dash_html_components as html
-#import dash_html_components as dbc
-#import dash_bootstrap_components as dbc
 from dash import dcc 
 from dash import html
 from dash import dash_table
@@ -16,45 +13,62 @@ import base64
 import datetime
 import io
 import numpy as np
+from cleandata2 import clean_data, get_map_attributes
+
+#initialize county polygons
+filename = './co_counties_voters.geojson'
+file=open(filename)
+counties_gdf = gpd.read_file(file)
+print(counties_gdf.head(1))
+print(counties_gdf.columns)
+
+#create df that contains counties and lat/long for them
+
+df_counties = counties_gdf[['LABEL', 'CENT_LAT', 'CENT_LONG']]
+
+# create empty df to initialize map
+df = pd.DataFrame()
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets,prevent_initial_callbacks=True)
 
 ### Plot a county map of Colorado (zoomed in to Denver metro)
-def plot_map():
-    global fig # make fig global so it can be updated
-    global counties_gdf # make global so it can be used in clean_data
-    filename = './co_counties_voters.geojson'
-    #filename = '/Users/arbetter/Coding/Streamlit/coloradovoters/co_counties_voters.geojson'
-    file=open(filename)
-    counties_gdf = gpd.read_file(file)
+def plot_map(df, counties_gdf):
+    lats = lons = sizes = colors = labels = []
+    if not df.empty:
+        lats, lons, labels, sizes, colors = get_map_attributes(df)
+      
 
-    print(counties_gdf.head(10))
+    print("*****got lats*****")
+    print(lats)
+    print(lons)
+    print(sizes)
+    print(colors)
+    print(labels)
+    
+    fig = go.Figure(go.Scattermapbox(
+        
+    ))
 
-    point = [-105, 40]
+    if  not df.empty:
+        lats, lons, labels, sizes, colors = get_map_attributes(df)
 
-#   fig = px.scatter_mapbox(lat=[point[1]], lon=[point[0]]).update_layout(
-#       mapbox={
-#           "style":"open-street-map",
-#           "zoom":7,
-#           "layers":[
-#               {
-#                   "source": json.loads(counties_gdf.geometry.to_json()),
-#                   "below":"traces",
-#                   "type":"line",
-#                   "color":"purple",
-#                   "line":{"width": 1.5}
-#               }
-#           ],
-#       },
-#       margin={"l":0,"r":0,"t":0,"b":0},
-#   )
-
-    fig = go.Figure(data=go.scattermapbox(lat=[point[1]], lon=[point[0]]).update_layout(
+        fig.add_trace(go.Scattermapbox(
+        mode = "markers",
+        lon = lons,
+        lat = lats,
+        text = labels,
+        marker = {'size': sizes, 'color': colors},
+        
+        ))
+    
+    #fig = go.Figure(go.scattermapbox(lat=lat, lon=lon))
+    fig.update_layout(
         mapbox={
             "style":"open-street-map",
-            "zoom":7,
+            "zoom": 5,
+            "center" :  go.layout.mapbox.Center(lat= 38.9, lon=-106.06),
             "layers":[
                 {
                     "source": json.loads(counties_gdf.geometry.to_json()),
@@ -66,7 +80,11 @@ def plot_map():
             ],
         },
         margin={"l":0,"r":0,"t":0,"b":0},
-    ) )
+    ) 
+
+    print("after add_scatter")
+    fig.update_traces(line=dict(width=3, color='black'))
+    
 
     return fig
 
@@ -96,149 +114,37 @@ def parse_contents(contents, filename, date):
     print (df.head(10))
 
 ### clean data
-    df_clean = clean_data(df)
-
-    return html.Div([
-        html.H5(filename),
-        html.H6(datetime.datetime.fromtimestamp(date)),
-
-        dash_table.DataTable(
-#           df_clean.to_dict('records'),
-            df.to_dict('records'),
-            [{'name': i, 'id': i} for i in df.columns]
-        ),
-
-        html.Hr(),  # horizontal line
-
-        # For debugging, display the raw contents provided by the web browser
-        html.Div('Raw Content'),
-        html.Pre(contents[0:200] + '...', style={
-            'whiteSpace': 'pre-wrap',
-            'wordBreak': 'break-all'
-        })
-    ])
-
-def clean_data(df):
-    global fig
-### use dff because counties_df is global
-    global counties_df # make global so it can be used in clean_data
-    dff = counties_gdf.copy()
-    df_clean = df.copy()
-
-    print('cleaning data')
-
-# fill missing with 0
-    df_clean =df_clean.fillna(value='0',axis=1)
-
-    for col in df_clean.columns:
-        if (col != 'County'):
-#remove commas from numbers
-            df_clean[col] = df_clean[col].astype(str)
-            df_clean[col] = df_clean[col].str.replace(',','')
-            df_clean[col] = df_clean[col].astype(float)
-            df_clean[col] = df_clean[col].astype(np.int64)
-
-    for i in range(len(dff)):
-        df_clean.at[i,'%Active']=100.*df_clean.at[i,'Total-Active']/df_clean.at[i,'Total']
-
-#now updating df
-    dff['Republicans']=0
-    dff['Democrats']=0
-    dff['Unaffiliated']=0
-    dff['Max']=None
-    dff['Total']=0
-
-
-#    figure.update_traces(locations=dff,selector=dict(type='choropleth'))
-#    figure.add_trace(go.Scatter,data=dff)
-
-    partial = 0.75
-
-    for c in dff['LABEL']:
-        county_index = dff[dff['LABEL']==c].index[0]
-        print('LABEL',county_index)
-        voter_index = df_clean[df_clean['County']==c].index[0]
-        print('Voter',voter_index)
-        gop_total = df_clean.at[voter_index,'REP-Active']+df_clean.at[voter_index,'REP-Inactive']
-        dff.at[county_index,'Republicans'] = gop_total
-        dem_total = df_clean.at[voter_index,'DEM-Active']+df_clean.at[voter_index,'DEM-Inactive']
-        dff.at[county_index,'Democrats'] = dem_total
-        uaf_total = df_clean.at[voter_index,'UAF-Active']+df_clean.at[voter_index,'UAF-Inactive']
-        dff.at[county_index,'Unaffiliated'] = uaf_total
-        dff.at[county_index,'Total']=(gop_total + dem_total + uaf_total)/1000.
-
-        if ((dff.at[county_index,'Unaffiliated'] > dff.at[county_index,'Democrats']) and \
-            (dff.at[county_index,'Unaffiliated'] > dff.at[county_index,'Republicans'])):
-            if (dff.at[county_index,'Democrats']/dff.at[county_index,'Unaffiliated'] > partial):
-                dff.at[county_index,'Max']=1
-            elif (dff.at[county_index,'Republicans']/dff.at[county_index,'Unaffiliated'] > partial):
-                dff.at[county_index,'Max']=3
-            else:
-                dff.at[county_index,'Max']= 2
-        elif ((dff.at[county_index,'Republicans'] > dff.at[county_index,'Democrats']) and \
-            (dff.at[county_index,'Republicans'] > dff.at[county_index,'Unaffiliated'])):
-            dff.at[county_index,'Max']= 4  
-        elif ((dff.at[county_index,'Democrats'] > dff.at[county_index,'Unaffiliated']) and \
-            (dff.at[county_index,'Democrats'] > dff.at[county_index,'Republicans'])):
-            dff.at[county_index,'Max']= 0
-        else:
-            print('Error, no max found')
-            exit()
-
-    print(dff.columns)
-
-# prepare data for plot
-    lats = dff['CENT_LAT']
-    lons = dff['CENT_LONG']
-    sizes = dff['Total']
-    for i in range(0,len(sizes)):
-        sizes[i] = min(sizes[i],150)
-        sizes[i] = max(10,sizes[i])
-        print('s=',sizes[i])
-
-    colors = []
-    color_key = ["blue","lightblue","grey","pink","red"]
-    for i in range(0,len(dff['Max'])):
-        m = int(dff['Max'][i])
-        print('i=',i,' m=',m,color_key[m])
-        colors.append(color_key[m])
-
-    labels = []
-    reps = dff['Republicans'].astype(int).astype(str)
-    uafs = dff['Unaffiliated'].astype(int).astype(str)
-    dems = dff['Democrats'].astype(int).astype(str)
-    for i in range(0,len(dff['LABEL'])):
-        labels.append(dff['LABEL'][i] + '\nRep: '+reps[i] + '\nUAF: '+uafs[i]+'\nDems: '+dems[i])
-
-    print('lat',type(lats),'lon',type(lons))
-
-    fig.add_scattermapbox(lat=lats,lon=lons,mode='markers+text',text=labels,
-                      marker_size=sizes,marker_color=colors, below='')
-
-    fig.update_traces(line=dict(width=3, color='black'))
-
-    df = dff.copy()
+    df_clean = clean_data(df, df_counties)
     return df_clean
+    
+
 
 
 ### the Decorator that updates the output when a file is dragged onto the web page
 ### (also from https://dash.plotly.com/dash-core-components/upload)
 
-@app.callback(Output('output-data-upload', 'children'),
+@app.callback(Output('map', 'figure'),
               Input('upload-data', 'contents'),
               State('upload-data', 'filename'),
-              State('upload-data', 'last_modified'))
+              State('upload-data', 'last_modified'),prevent_initial_call=True)
 def update_output(list_of_contents, list_of_names, list_of_dates):
+    print("in update_output thing")
     if list_of_contents is not None:
+        df_cleaned = [parse_contents(c, n, d) for c, n, d in
+            zip(list_of_contents, list_of_names, list_of_dates)]
+        print(df_cleaned[0].head(2))    
+        fig = plot_map(df_cleaned[0],counties_gdf)  
+        return fig  
         children = [
             parse_contents(c, n, d) for c, n, d in
             zip(list_of_contents, list_of_names, list_of_dates)]
         return children
 
 
-figure = plot_map()
-app.layout = html.Div(children=[html.H1(children='Colorado Counties'),
-    dcc.Graph(id='map', figure=figure),
+#figure = plot_map(df, counties_gdf)
+app.layout = html.Div([
+    dcc.Graph(id='map',
+              figure=plot_map(df,counties_gdf)),
     dcc.Upload(
         id='upload-data',
         children=html.Div([
@@ -258,10 +164,11 @@ app.layout = html.Div(children=[html.H1(children='Colorado Counties'),
         # Allow multiple files to be uploaded
         multiple=True
     ),
-    html.Div(id='output-data-upload'),
+
+    #html.Div(id='output-data-upload'),
   ]
  )
 
 if __name__ == '__main__':
-    app.run_server()
+    app.run_server(debug=True)
 
