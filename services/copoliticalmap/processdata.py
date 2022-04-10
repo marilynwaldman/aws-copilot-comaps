@@ -3,6 +3,7 @@ import geopandas as gpd
 import plotly.graph_objects as go
 import numpy as np
 
+# missing data and change types
 def transform_df(df):
     # fill missing with 0
     df =df.fillna(value='0',axis=1)
@@ -19,7 +20,9 @@ def transform_df(df):
 
     return df  
 
+# Total active and inactive per party
 def get_totals(df):
+
     # initialize party totals columns
     df['Republicans']=0
     df['Democrats']=0
@@ -55,7 +58,7 @@ def find_max(df):
     
     return df
 
-def clean_data(df, df_geo):
+def process_data(df, df_geo):
 
     # fill missing data, strings to floats and average thing
     df_transformed = transform_df(df)
@@ -71,13 +74,19 @@ def clean_data(df, df_geo):
 
 def get_map_attributes(counties_gdf):
     # prepare data for plot
+    print(counties_gdf.columns)
     lats = counties_gdf['CENT_LAT']
     lons = counties_gdf['CENT_LONG']
-    sizes = counties_gdf['Total']/1000.0
-    for i in range(0,len(sizes)):
-        sizes[i] = sizes[i].astype(int).item()
-        sizes[i] = min(sizes[i],65) 
-        sizes[i] = max(5,sizes[i])
+    #sizes = counties_gdf['Total'].astype(int)/1000.0
+    sizes = counties_gdf['Total'].astype(int)/1000.0
+    factor = 200.0 * sizes.min()/sizes.max() 
+    sizes = factor * sizes
+
+
+    #for i in range(0,len(sizes)):
+        #sizes[i] = sizes[i].astype(int).item()
+        #sizes[i] = min(sizes[i],65) 
+        #sizes[i] = max(5,sizes[i])
         
 
     colors = []

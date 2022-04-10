@@ -13,7 +13,7 @@ import base64
 import datetime
 import io
 import numpy as np
-from cleandata2 import clean_data, get_map_attributes
+from processdata import process_data, get_map_attributes
 
 #initialize county polygons
 filename = './co_counties_voters.geojson'
@@ -91,7 +91,7 @@ def parse_contents(contents, filename, date):
 
 
 ### clean data
-    df_clean = clean_data(df, df_counties)
+    df_clean = process_data(df, df_counties)
     return df_clean
     
 
