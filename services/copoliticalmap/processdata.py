@@ -1,12 +1,11 @@
 import pandas as pd
 import geopandas as gpd
-import plotly.graph_objects as go
 import numpy as np
 
 # missing data and change types
 def transform_df(df):
     # fill missing with 0
-    df =df.fillna(value='0',axis=1)
+    df = df.fillna(value='0',axis=1)
 
     #remove commas from numbers and create np floats for all columns except County Name
     for col in df.columns:
@@ -15,8 +14,6 @@ def transform_df(df):
             df[col] = df[col].str.replace(',','')
             df[col] = df[col].astype(float)
             df[col] = df[col].astype(np.int64)
-
-    df['Active'] = df['Total-Active'] * 100.0/ df['Total']
 
     return df  
 
@@ -34,6 +31,7 @@ def get_totals(df):
     df['Republicans'] = df['REP-Active'] + df['REP-Inactive']
     df['Democrats'] = df['DEM-Active'] + df['DEM-Inactive']
     df['Unaffiliated'] = df['UAF-Active'] + df['UAF-Inactive']
+    df['Active'] = df['REP-Active'] + df['DEM-Active'] + df['UAF-Active'] 
     df['Total'] = df['Unaffiliated'] + df['Democrats'] + df['Republicans'] 
 
     return df  
@@ -50,11 +48,11 @@ def find_max(df):
     df['maxParty'] = df[['Republicans', 'Democrats', 'Unaffiliated']].idxmax(axis = 1)  
     
     partial = .75
-    df.loc[df.maxParty == 'Republicans', "Max"] = 4
-    df.loc[df.maxParty == 'Democrats', "Max"] = 0
-    df.loc[df.maxParty == 'Unaffiliated', "Max"] = 2
-    df.loc[(df.maxParty == 'Unaffiliated') & (df.Democrats/df.Unaffiliated > partial) , "Max"] = 1
-    df.loc[(df.maxParty == 'Unaffiliated') & (df.Republicans/df.Unaffiliated > partial), "Max"] = 3
+    df.loc[df.maxParty == 'Republicans', "Max"] = "4"
+    df.loc[df.maxParty == 'Democrats', "Max"] = "0"
+    df.loc[df.maxParty == 'Unaffiliated', "Max"] = "2"
+    df.loc[(df.maxParty == 'Unaffiliated') & (df.Democrats/df.Unaffiliated > partial) , "Max"] = "1"
+    df.loc[(df.maxParty == 'Unaffiliated') & (df.Republicans/df.Unaffiliated > partial), "Max"] = "3"
     
     return df
 
@@ -90,21 +88,27 @@ def get_map_attributes(counties_gdf):
         
 
     colors = []
-    color_key = ["blue","lightblue","grey","pink","red"]
-    for i in range(0,len(counties_gdf['Max'])):
-        m = int(counties_gdf['Max'][i])
-        colors.append(color_key[m])
+    color_dict = {  "0" : "blue",
+                    "1" : "lightblue",
+                    "2" : "grey",
+                    "3" : "pink",
+                    "4" : "red"
+                }
+    
+    counties_gdf['Color'] = counties_gdf['Max'].map(color_dict)
 
     labels = []
     reps = counties_gdf['Republicans'].astype(int).astype(str)
     uafs = counties_gdf['Unaffiliated'].astype(int).astype(str)
     dems = counties_gdf['Democrats'].astype(int).astype(str)
+    colors = counties_gdf['Color'].astype(str)
     for i in range(0,len(counties_gdf['County'])):
         labels.append(counties_gdf['County'][i] + '\nRep: '+reps[i] + '\nUAF: '+uafs[i]+'\nDems: '+dems[i])
  
     lats = lats.tolist()
     lons = lons.tolist()
     sizes = sizes.tolist()
+    colors = colors.tolist()
     
     return lats, lons, labels, sizes, colors 
 

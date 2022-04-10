@@ -2,15 +2,12 @@ import dash
 from dash import dcc 
 from dash import html
 from dash import dash_table
-import dash_leaflet as dl
 from dash.dependencies import Input, Output,State
 import json
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import geopandas as gpd
 import base64
-import datetime
 import io
 import numpy as np
 from processdata import process_data, get_map_attributes
