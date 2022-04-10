@@ -35,17 +35,6 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets,prevent_init
 
 ### Plot a county map of Colorado (zoomed in to Denver metro)
 def plot_map(df, counties_gdf):
-    lats = lons = sizes = colors = labels = []
-    if not df.empty:
-        lats, lons, labels, sizes, colors = get_map_attributes(df)
-      
-
-    print("*****got lats*****")
-    print(lats)
-    print(lons)
-    print(sizes)
-    print(colors)
-    print(labels)
     
     fig = go.Figure(go.Scattermapbox(
         

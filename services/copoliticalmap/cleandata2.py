@@ -80,8 +80,8 @@ def get_map_attributes(counties_gdf):
     sizes = counties_gdf['Total']/1000.0
     for i in range(0,len(sizes)):
         sizes[i] = sizes[i].astype(int).item()
-        sizes[i] = min(sizes[i],150) 
-        sizes[i] = max(10,sizes[i])
+        sizes[i] = min(sizes[i],65) 
+        sizes[i] = max(5,sizes[i])
         #print('s=',sizes[i])
         #print(type(sizes[i]))
 
