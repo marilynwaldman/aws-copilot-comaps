@@ -43,6 +43,9 @@ def plot_map(df, counties_gdf):
         marker = {'size': sizes, 'color': colors},
         
         ))
+
+    
+
     
     #fig = go.Figure(go.scattermapbox(lat=lat, lon=lon))
     fig.update_layout(
